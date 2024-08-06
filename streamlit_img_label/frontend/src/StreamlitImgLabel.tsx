@@ -57,50 +57,30 @@ const StreamlitImgLabel = (props: ComponentProps) => {
 
     // Initialize canvas on mount and add a rectangle
     useEffect(() => {
-        const { points, rects, boxColor, pointColor }: PythonArgs = props.args
+        // const { points, rects, boxColor, pointColor }: PythonArgs = props.args
         const canvasTmp = new fabric.Canvas("c", {
             enableRetinaScaling: false,
             backgroundImage: dataUri,
             uniScaleTransform: true,
         })
 
-        rects.forEach((rect) => {
-            const { top, left, width, height } = rect
-            canvasTmp.add(
-                new fabric.Rect({
-                    left,
-                    top,
-                    fill: "",
-                    width,
-                    height,
-                    objectCaching: true,
-                    stroke: boxColor,
-                    strokeWidth: 1,
-                    strokeUniform: true,
-                    hasRotatingPoint: false,
-                })
-            )
-        })
-
-        points.forEach((point) => {
-            const { top, left, width, height } = point
-            canvasTmp.add(
-                new fabric.Circle({
-                        left,
-                        top,
-                        fill: pointColor,
-                        width,
-                        height,
-                        radius: width,
-                        objectCaching: true,
-                        stroke: pointColor,
-                        strokeWidth: 1,
-                        strokeUniform: true,
-                        hasRotatingPoint: false,
-                    }
-                )
-            )
-        })
+        // rects.forEach((rect) => {
+        //     const { top, left, width, height } = rect
+        //     canvasTmp.add(
+        //         new fabric.Rect({
+        //             left,
+        //             top,
+        //             fill: "",
+        //             width,
+        //             height,
+        //             objectCaching: true,
+        //             stroke: boxColor,
+        //             strokeWidth: 1,
+        //             strokeUniform: true,
+        //             hasRotatingPoint: false,
+        //         })
+        //     )
+        // })
 
         setCanvas(canvasTmp)
         Streamlit.setFrameHeight()

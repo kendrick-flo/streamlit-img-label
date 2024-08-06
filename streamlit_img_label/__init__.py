@@ -24,7 +24,7 @@ else:
 #         pointColor="green",
 #         imageData=np.array(resized_img.convert("RGBA")).flatten().tolist(),
 
-def st_img_label(resized_img, rects=[], points=[], box_color="red", point_color="green", key=None):
+def st_img_label(resized_img, rects=[], points=[], box_color="red", point_color="blue", key=None):
     """Create a new instance of "st_img_label".
 
     Parameters
@@ -32,9 +32,13 @@ def st_img_label(resized_img, rects=[], points=[], box_color="red", point_color=
     img_file: PIL.Image
         The image to be croppepd
     box_color: string
-        The color of the cropper's bounding box. Defaults to blue.
+        The color of the cropper's bounding box. Defaults to red.
+    point_color: string
+        The color of the cropper's point. Defaults to green.
     rects: list
         list of bounding boxes that already exists.
+    points: list
+        list of points that already exists.
     key: str or None
         An optional key that uniquely identifies this component. If this is
         None, and the component's arguments are changed, the component will
@@ -63,7 +67,9 @@ def st_img_label(resized_img, rects=[], points=[], box_color="red", point_color=
         canvasWidth=canvasWidth,
         canvasHeight=canvasHeight,
         rects=rects,
+        points=points,
         boxColor=box_color,
+        pointColor=point_color,
         imageData=imageData,
         key=key,
     )
