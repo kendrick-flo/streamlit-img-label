@@ -24,14 +24,16 @@ class ImageManager:
         self._filename = filename
         self._img = Image.open(filename)
         self._rects = []
-        self._load_rects()
+        self._points = []
+        # self._load_rects()
         self._resized_ratio_w = 1
         self._resized_ratio_h = 1
 
-    def _load_rects(self):
-        rects_xml = read_xml(self._filename)
-        if rects_xml:
-            self._rects = rects_xml
+    # annotation labeling 기능 필요 X
+    # def _load_rects(self):
+    #     rects_xml = read_xml(self._filename)
+    #     if rects_xml:
+    #         self._rects = rects_xml
 
     def get_img(self):
         """get the image object
@@ -91,6 +93,22 @@ class ImageManager:
             resized_rects(list): the resized bounding boxes of the image.
         """
         return [self._resize_rect(rect) for rect in self._rects]
+
+    def _resize_point(self, point):
+        resized_point = {}
+        resized_point["x"] = point["x"] / self._resized_ratio_w
+        resized_point["y"] = point["y"] / self._resized_ratio_h
+        if "label" in point:
+            resized_point["label"] = point["label"]
+        return resized_point
+
+    def get_resized_points(self):
+        """get resized the points according to the resized image.
+
+        Returns:
+            resized_points(list): the resized points of the image.
+        """
+        return [self._resize_point(point) for point in self._points]
 
     def _chop_box_img(self, rect):
         rect["left"] = int(rect["left"] * self._resized_ratio_w)

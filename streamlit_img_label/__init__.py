@@ -16,7 +16,15 @@ else:
     _component_func = components.declare_component("st_img_label", path=build_dir)
 
 
-def st_img_label(resized_img, box_color="blue", rects=[], key=None):
+# canvasWidth=resized_img.width,
+#         canvasHeight=resized_img.height,
+#         rects=resized_rects,
+#         points=resized_points,
+#         boxColor="red",
+#         pointColor="green",
+#         imageData=np.array(resized_img.convert("RGBA")).flatten().tolist(),
+
+def st_img_label(resized_img, rects=[], points=[], box_color="red", point_color="green", key=None):
     """Create a new instance of "st_img_label".
 
     Parameters
@@ -60,10 +68,8 @@ def st_img_label(resized_img, box_color="blue", rects=[], key=None):
         key=key,
     )
     # Return a cropped image using the box from the frontend
-    if component_value:
-        return component_value["rects"]
-    else:
-        return rects
+    return component_value
+
 
 
 # Add some test code to play with the component while it's in development.
