@@ -7,28 +7,29 @@ import {
 import { fabric } from "fabric"
 import styles from "./StreamlitImgLabel.module.css"
 
-interface RectProps {
+interface FabricObjectProps {
     top: number
     left: number
     width: number
     height: number
-    label: string
 }
 
 interface PythonArgs {
     canvasWidth: number
     canvasHeight: number
-    rects: RectProps[]
+    rects: FabricObjectProps[]
+    points: FabricObjectProps[]
     boxColor: string
+    pointColor: string
     imageData: Uint8ClampedArray
 }
 
 const StreamlitImgLabel = (props: ComponentProps) => {
     const [mode, setMode] = useState<string>("light")
-    const [labels, setLabels] = useState<string[]>([])
     const [canvas, setCanvas] = useState(new fabric.Canvas(""))
     const { canvasWidth, canvasHeight, imageData }: PythonArgs = props.args
     const [newBBoxIndex, setNewBBoxIndex] = useState<number>(0)
+    const [newPointIndex, setNewPointIndex] = useState<number>(0)
 
     /*
      * Translate Python image data to a JavaScript Image
@@ -56,7 +57,7 @@ const StreamlitImgLabel = (props: ComponentProps) => {
 
     // Initialize canvas on mount and add a rectangle
     useEffect(() => {
-        const { rects, boxColor }: PythonArgs = props.args
+        const { points, rects, boxColor, pointColor }: PythonArgs = props.args
         const canvasTmp = new fabric.Canvas("c", {
             enableRetinaScaling: false,
             backgroundImage: dataUri,
@@ -80,7 +81,26 @@ const StreamlitImgLabel = (props: ComponentProps) => {
                 })
             )
         })
-        setLabels(rects.map((rect) => rect.label))
+
+        points.forEach((point) => {
+            const { top, left, width, height } = point
+            canvasTmp.add(
+                new fabric.Circle({
+                        left,
+                        top,
+                        fill: pointColor,
+                        width,
+                        height,
+                        radius: width,
+                        objectCaching: true,
+                        stroke: pointColor,
+                        strokeWidth: 1,
+                        strokeUniform: true,
+                        hasRotatingPoint: false,
+                    }
+                )
+            )
+        })
 
         setCanvas(canvasTmp)
         Streamlit.setFrameHeight()
@@ -95,10 +115,21 @@ const StreamlitImgLabel = (props: ComponentProps) => {
         height: canvasHeight * 0.2,
     })
 
+    const defaultPoint = () => ({
+        left: canvasWidth * 0.15 + newPointIndex * 3,
+        top: canvasHeight * 0.15 + newPointIndex * 3,
+        width: canvasWidth * 0.01,
+        height: canvasHeight * 0.01,
+    })
+
     // Add new bounding box to be image
     const addBoxHandler = () => {
+        if (newBBoxIndex === 50) {
+            setNewBBoxIndex(0);
+        } else {
+            setNewBBoxIndex(newBBoxIndex + 1);
+        }
         const box = defaultBox()
-        setNewBBoxIndex(newBBoxIndex + 1)
         canvas.add(
             new fabric.Rect({
                 ...box,
@@ -110,56 +141,60 @@ const StreamlitImgLabel = (props: ComponentProps) => {
                 hasRotatingPoint: false,
             })
         )
-        sendCoordinates([...labels, ""])
+        sendCoordinates()
+    }
+
+    const addPointHandler = () => {
+        if (newPointIndex === 50) {
+            setNewPointIndex(0);
+        } else {
+            setNewPointIndex(newPointIndex + 1);
+        }
+        const point = defaultPoint()
+        canvas.add(
+            new fabric.Circle({
+                ...point,
+                radius: point.width,
+                fill: props.args.pointColor,
+                objectCaching: true,
+                stroke: props.args.pointColor,
+                strokeWidth: 1,
+                strokeUniform: true,
+                hasRotatingPoint: false,
+            })
+        )
+        sendCoordinates()
     }
 
     // Remove the selected bounding box
-    const removeBoxHandler = () => {
+    const removeHandler = () => {
+        // const selectIndex = canvas.getObjects().indexOf(selectObject)
         const selectObject = canvas.getActiveObject()
-        const selectIndex = canvas.getObjects().indexOf(selectObject)
         canvas.remove(selectObject)
-        sendCoordinates(labels.filter((label, i) => i !== selectIndex))
-    }
-
-    // Reset the bounding boxes
-    const resetHandler = () => {
-        clearHandler()
-        const { rects, boxColor }: PythonArgs = props.args
-        rects.forEach((rect) => {
-            const { top, left, width, height } = rect
-            canvas.add(
-                new fabric.Rect({
-                    left,
-                    top,
-                    fill: "",
-                    width,
-                    height,
-                    objectCaching: true,
-                    stroke: boxColor,
-                    strokeWidth: 1,
-                    strokeUniform: true,
-                    hasRotatingPoint: false,
-                })
-            )
-        })
-        sendCoordinates(labels)
+        sendCoordinates()
     }
 
     // Remove all the bounding boxes
-    const clearHandler = () => {
+    const clearAllHandler = () => {
         setNewBBoxIndex(0)
+        setNewPointIndex(0)
         canvas.getObjects().forEach((rect) => canvas.remove(rect))
-        sendCoordinates([])
+        sendCoordinates()
     }
 
     // Send the coordinates of the rectangle back to streamlit.
-    const sendCoordinates = (returnLabels: string[]) => {
-        setLabels(returnLabels)
-        const rects = canvas.getObjects().map((rect, i) => ({
-            ...rect.getBoundingRect(),
-            label: returnLabels[i],
-        }))
-        Streamlit.setComponentValue({ rects })
+    const sendCoordinates = () => {
+        const rects = canvas.getObjects()
+            .filter(rect => rect.isType("rect"))
+            .map((rect, i) => ({
+                ...rect.getBoundingRect()
+            }))
+        const points = canvas.getObjects()
+            .filter(point => point.isType("circle"))
+            .map((point, i) => ({
+                ...point.getCenterPoint(),
+            }))
+        Streamlit.setComponentValue({ rects, points })
     }
 
     // Update the bounding boxes when modified
@@ -169,7 +204,7 @@ const StreamlitImgLabel = (props: ComponentProps) => {
         }
         const handleEvent = () => {
             canvas.renderAll()
-            sendCoordinates(labels)
+            sendCoordinates()
         }
 
         canvas.on("object:modified", handleEvent)
@@ -221,25 +256,25 @@ const StreamlitImgLabel = (props: ComponentProps) => {
                     className={mode === "dark" ? styles.dark : ""}
                     onClick={addBoxHandler}
                 >
-                    Add bounding box
+                    새로운 박스 생성
                 </button>
                 <button
                     className={mode === "dark" ? styles.dark : ""}
-                    onClick={removeBoxHandler}
+                    onClick={addPointHandler}
                 >
-                    Remove select
+                    새로운 포인트 생성
                 </button>
                 <button
                     className={mode === "dark" ? styles.dark : ""}
-                    onClick={resetHandler}
+                    onClick={removeHandler}
                 >
-                    Reset
+                    선택한 박스/포인트 제거
                 </button>
                 <button
                     className={mode === "dark" ? styles.dark : ""}
-                    onClick={clearHandler}
+                    onClick={clearAllHandler}
                 >
-                    Clear all
+                    모든 박스/포인트 제거
                 </button>
             </div>
         </>
