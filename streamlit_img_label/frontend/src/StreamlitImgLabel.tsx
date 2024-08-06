@@ -7,6 +7,9 @@ import {
 import { fabric } from "fabric"
 import styles from "./StreamlitImgLabel.module.css"
 
+const NEGATIVE_POINT_LABEL: number = 0
+const POINT_LABEL: number = 1
+
 interface FabricObjectProps {
     top: number
     left: number
@@ -19,8 +22,10 @@ interface PythonArgs {
     canvasHeight: number
     rects: FabricObjectProps[]
     points: FabricObjectProps[]
+    negativePoints: FabricObjectProps[]
     boxColor: string
     pointColor: string
+    negativePointColor: string
     imageData: Uint8ClampedArray
 }
 
@@ -30,6 +35,7 @@ const StreamlitImgLabel = (props: ComponentProps) => {
     const { canvasWidth, canvasHeight, imageData }: PythonArgs = props.args
     const [newBBoxIndex, setNewBBoxIndex] = useState<number>(0)
     const [newPointIndex, setNewPointIndex] = useState<number>(0)
+    const [newNegativePointIndex, setNewNegativePointIndex] = useState<number>(0)
 
     /*
      * Translate Python image data to a JavaScript Image
@@ -102,6 +108,13 @@ const StreamlitImgLabel = (props: ComponentProps) => {
         height: canvasHeight * 0.01,
     })
 
+    const defaultNegativePoint = () => ({
+        left: canvasWidth * 0.15 + newNegativePointIndex * 3,
+        top: canvasHeight * 0.15 + newNegativePointIndex * 3,
+        width: canvasWidth * 0.01,
+        height: canvasHeight * 0.01,
+    })
+
     // Add new bounding box to be image
     const addBoxHandler = () => {
         if (newBBoxIndex === 50) {
@@ -134,10 +147,34 @@ const StreamlitImgLabel = (props: ComponentProps) => {
         canvas.add(
             new fabric.Circle({
                 ...point,
+                data: POINT_LABEL,
                 radius: point.width,
                 fill: props.args.pointColor,
                 objectCaching: true,
                 stroke: props.args.pointColor,
+                strokeWidth: 1,
+                strokeUniform: true,
+                hasRotatingPoint: false,
+            })
+        )
+        sendCoordinates()
+    }
+
+    const addNegativePointHandler = () => {
+        if (newNegativePointIndex === 50) {
+            setNewNegativePointIndex(0);
+        } else {
+            setNewNegativePointIndex(newNegativePointIndex + 1);
+        }
+        const point = defaultNegativePoint()
+        canvas.add(
+            new fabric.Circle({
+                ...point,
+                data: NEGATIVE_POINT_LABEL,
+                radius: point.width,
+                fill: props.args.negativePointColor,
+                objectCaching: true,
+                stroke: props.args.negativePointColor,
                 strokeWidth: 1,
                 strokeUniform: true,
                 hasRotatingPoint: false,
@@ -158,7 +195,8 @@ const StreamlitImgLabel = (props: ComponentProps) => {
     const clearAllHandler = () => {
         setNewBBoxIndex(0)
         setNewPointIndex(0)
-        canvas.getObjects().forEach((rect) => canvas.remove(rect))
+        setNewNegativePointIndex(0)
+        canvas.getObjects().forEach((object) => canvas.remove(object))
         sendCoordinates()
     }
 
@@ -170,11 +208,18 @@ const StreamlitImgLabel = (props: ComponentProps) => {
                 ...rect.getBoundingRect()
             }))
         const points = canvas.getObjects()
-            .filter(point => point.isType("circle"))
+            .filter(point => point.isType("circle") && point.data === POINT_LABEL)
             .map((point, i) => ({
                 ...point.getCenterPoint(),
+                label: POINT_LABEL,
             }))
-        Streamlit.setComponentValue({ rects, points })
+        const negativePoints = canvas.getObjects()
+            .filter(point => point.isType("circle") && point.data === NEGATIVE_POINT_LABEL)
+            .map((point, i) => ({
+                ...point.getCenterPoint(),
+                label: NEGATIVE_POINT_LABEL,
+            }))
+        Streamlit.setComponentValue({ rects, points, negativePoints })
     }
 
     // Update the bounding boxes when modified
@@ -243,6 +288,12 @@ const StreamlitImgLabel = (props: ComponentProps) => {
                     onClick={addPointHandler}
                 >
                     새로운 포인트 생성
+                </button>
+                <button
+                    className={mode === "dark" ? styles.dark : ""}
+                    onClick={addNegativePointHandler}
+                >
+                    새로운 네거티브 포인트 생성
                 </button>
                 <button
                     className={mode === "dark" ? styles.dark : ""}
